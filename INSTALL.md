@@ -43,6 +43,14 @@ $ brew install cmake \
   doxygen 
 ```
 
+
+## Installing from PyPI
+
+If you only want to use PROPOSAL from python, go ahead and 
+```
+$ pip install [--user] proposal
+```
+
 ## Building PROPOSAL
 
 1. Download a release tarball from <https://github.com/tudo-astroparticlephysics/PROPOSAL/releases>
@@ -110,16 +118,19 @@ is set to `Debug` when in a git checkout and to `Release` otherwise.
 Two other options exist: `RelWithDebInfo` and `MinSizeRel`.
 See https://cmake.org/cmake/help/v3.17/variable/CMAKE_BUILD_TYPE.html
 
-# Additional Cmake options
+# Additional cmake options
 
 | Option | Default value | Description |
 | --- | --- | --- |
 | `ADD_PYTHON` | ON | Compile the python wrapper |
-| `ADD_PERFORMANCE_TEST` | OFF | Compile the performace test source |
+| `ADD_PERFORMANCE_TEST` | OFF | Compile the performance test source |
 | `ADD_ROOT` | ON | Compile PROPOSAL with ROOT support |
 
 
-# Compiling
+# Compiling your executables using PROPOSAL
+
+
+## Simple executable
 
 After installation PROPOSAL can be used as a C++ library and easily included in any `*.cxx` file with the command
 
@@ -131,6 +142,24 @@ Assuming `PROPOSAL.h` has been included in a file with the name `example.cxx`, t
 
 ```sh
 $ g++ example.cxx -std=c++11 -lPROPOSAL <further options>
+```
+
+##  CMake Project
+
+PROPOSAL exports a cmake config file, suitable for use with `find_package`.
+To use PROPOSAL as dependency in your own CMake project, use:
+
+```cmake
+add_executable(example ...)
+find_package(PROPOSAL REQUIRED)
+target_link_libraries(example PRIVATE PROPOSAL::PROPOSAL)  # or PUBLIC
+```
+
+In case you did install PROPOSAL in a custom prefix, use `PROPOSAL_DIR` to tell
+cmake where to find PROPOSAL:
+
+```
+$ PROPOSAL_DIR=/path/to/proposal/prefix cmake ...
 ```
 
 # Tests
