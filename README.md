@@ -19,7 +19,9 @@
 ```
 
 
-# PROPOSAL [![Build Status](https://travis-ci.org/tudo-astroparticlephysics/PROPOSAL.svg?branch=master)](https://travis-ci.org/tudo-astroparticlephysics/PROPOSAL) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1484180.svg)](https://doi.org/10.5281/zenodo.1484180)
+# PROPOSAL 
+
+![example event parameter](https://github.com/tudo-astroparticlephysics/PROPOSAL/actions/workflows/cpp.yml/badge.svg?branch=master) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1484180.svg)](https://doi.org/10.5281/zenodo.1484180)
 
 PROPOSAL (Propagator with optimal precision and optimized speed for all
 leptons) is presented as a public tool for propagating leptons and gamma rays
@@ -32,11 +34,131 @@ The full Paper can be found
 [here](https://doi.org/10.1016/j.cpc.2013.04.001).
 Recent improvements are documented [here](https://doi.org/10.1016/j.cpc.2019.03.021).
 
-PROPOSAL is developed and tested on macOS and linux. 
-Continuous integration is setup on travis and tests several version of gcc and clang.
+PROPOSAL is developed and tested on macOS, Linux and Windows:
+Continuous integration is set up on GitHub actions testing PROPOSAL on gcc, clang and Visual Studio.
 
-PROPOSAL is now a C++11 library using pybind11 Python bindings!
+PROPOSAL is now a C++14 library using pybind11 Python bindings!
 
+## Requirements
+
+- CMake 3.9 or higher (to build the tests CMake 3.10 is required)
+- C++14 compatible compiler (for gcc: version 5 and later; for clang: version 3.4 and later)
+
+Furthermore, you either need the package manager
+
+- conan
+
+which will provide all dependencies that are necessary for PROPOSAL or you need to provide these dependencies by your own. For more information, see [here](INSTALL.md).
+
+## Installation
+
+If you are only interested in using PROPOSAL as a python library, the easiest way to install it should be using 
+
+```
+pip install proposal
+```
+
+Advanced install and compiling instructions, especially if you want to use PROPOSAL as a C++ library, are found in [install](INSTALL.md).
+
+## Usage
+
+### Usage in Python
+
+If you want to learn how to use PROPOSAL in Python, we recommend to look at the jupyter notebooks provided in the [examples](examples) folder.
+A good starting point is the [Propagator](examples/Propagator.ipynb) jupyter notebook.
+
+For a short demonstration, look at the following snippet: 
+It will create data you can use to show the distribution of muon ranges and the number of interactions in ice.
+
+```python
+import proposal as pp
+
+mu_def = pp.particle.MuMinusDef()
+prop = pp.Propagator(
+	  particle_def=mu_def,
+	  path_to_config_file="path/to/config.json"
+)
+
+init_state = pp.particle.ParticleState()
+init_state.energy = 1e9 # initial energy in MeV
+init_state.position = pp.Cartesian3D(0, 0, 0)
+init_state.direction = pp.Cartesian3D(0, 0, 1)
+
+mu_length = []
+
+for i in range(1000):
+    track = prop.propagate(init_state)
+
+    mu_length.append(track.track_propagated_distances()[-1] / 100)
+```
+
+Note that you need to provide a path to a valid configuration file.
+The parameters of the given configuration file are described
+[here](docs/config_docu.md).
+
+For a detailed explanation on how this snippet works, look at the [Propagator](examples/Propagator.ipynb) jupyter notebook!
+
+### Usage as a C++ library
+
+PROPOSAL is built as a library, which means you can include this project in your own
+C++ project by including the header files. The following snippet uses the
+[configuration](examples/config_minimal.json) to propagate muons and
+stores the muon ranges.
+The parameters of the configuration file are described
+**[here](docs/config_docu.md)**.
+
+```c++
+#include "PROPOSAL/PROPOSAL.h"
+
+using namespace PROPOSAL;
+
+int main(){
+    auto mu_def = MuMinusDef();
+    Propagator prop(mu_def, "path/to/config.json");
+
+    Cartesian3D position(0, 0, 0);
+    Cartesian3D direction(0, 0, 1);
+    auto energy = 1e8; // MeV
+    auto init_state = ParticleState(position, direction, energy, 0., 0.);
+
+    std::vector<double> ranges;
+
+    for (int i = 0; i < 10; i++)
+    {
+        auto track = prop.Propagate(init_state, 50000); // distance to propagate in cm
+
+        ranges.push_back(track.back().propagated_distance);
+    }
+
+// ... Do stuff with ranges, e.g. plot histogram
+
+}
+```
+
+To see an example on how to run this script with PROPOSAL using CMake, see [here](INSTALL.md).
+
+## Issues ##
+
+When you encounter any errors or misunderstandings, you can always create an issue here on GitHub.
+Furthermore, you may always contact us with your questions via
+[Jean-Marco Alameddine](mailto:jean-marco.alameddine@tu-dortmund.de),
+[Jan Soedingrekso](mailto:jan.soedingrekso@tu-dortmund.de),
+[Alexander Sandrock](mailto:alexander.sandrock@tu-dortmund.de).
+
+## License ##
+
+This software may be modified and distributed under the terms of
+a modified LGPL License. See the LICENSE for details of the LGPL License.
+
+Modifications of the LGPL [License](https://github.com/tudo-astroparticlephysics/PROPOSAL/blob/master/LICENSE.md):
+
+1. The user shall acknowledge the use of PROPOSAL by citing the following reference:
+
+	> J.H. Koehne et al.
+	> Comput.Phys.Commun. 184 (2013) 2070-2090
+	> DOI: 10.1016/j.cpc.2013.04.001
+
+2. The user should report any bugs/errors or improvements to the current maintainer of PROPOSAL.
 
 ## How to cite PROPOSAL?
 
@@ -63,19 +185,24 @@ If you use PROPOSAL, please cite the PROPOSAL paper
 and our zenodo entry of the version you use
 ```bibtex
 @misc{dunsch_2020_1484180,
-  author = {Dunsch, Mario and
-            Soedingrekso, Jan and
-            Koehne, Jan-Hendrik and
+  author = {Alameddine, Jean-Marco and
+            Dunsch, Mario and
+            Bollmann, Lars and
             Fuchs, Tomasz and
-            Alameddine, Jean-Marco and
-            Sackel, Maximilian and
-            Noethe, Maximilian and
-            van Santen, Jacob and
-            Menne, Thorben and
-            Sandrock, Alexander and
+            Gutjahr, Pascal and
+            Koehne, Jan-Hendrik and
             Kopper, Claudio and
             Krings, Kai and
-            Olivas, Alex},
+            Kuo, Chung-Yun and
+            Menne, Thorben and
+            Noethe, Maximilian and
+            Olivas, Alex and
+            Rhode, Wolfgang and
+            Sackel, Maximilian and
+            Sandrock, Alexander and
+            Schneider, Austin and
+            Soedingrekso, Jan and
+            van Santen, Jacob},
   title  = {tudo-astroparticlephysics/PROPOSAL: Zenodo},
   month  = mar,
   year   = 2020,
@@ -104,170 +231,13 @@ and if you want to cite the latest improvements
 }
 ```
 
-
-## Requirements
-
-- CMake 3.8 or higher
-- C++11 compatible compiler
-
-## Recommended
-
-- Doxygen (For pdf and html documentation of the code)
-- [pybind11](https://github.com/pybind/pybind11)
-  (To build the python wrapper)
-  If you decide to build the python wrapper and pybind11 is not
-  provided on your system, pybind11 will be cloned to the project
-  source folder.
-
-## Installation
-
-Install and compiling instructions for the standalone installation
-are found in [install](https://github.com/tudo-astroparticlephysics/PROPOSAL/blob/master/INSTALL.md).
-
-
-## Usage
-
-### Deployment
-
-PROPOSAL is built as library. So you can include this project in your own
-c++ project by including the header files. The following snippet uses the
-[configuration](https://github.com/tudo-astroparticlephysics/PROPOSAL/blob/master/resources/config.json) to propagate muons and
-store the muon ranges for further proceeds.
-The parameters of the configuration file are described
-**[here](https://github.com/tudo-astroparticlephysics/PROPOSAL/blob/master/resources/config_docu.md)**.
-
-```c++
-#include "PROPOSAL/PROPOSAL.h"
-
-using namespace PROPOSAL;
-
-int main(){
-    ParticleDef mu_def = MuMinusDef::Get();
-    Propagator prop(mu_def, "resources/configuration/config.json");
-    DynamicData mu(mu_def.particle_type);
-
-    mu.SetEnergy(9e6);
-    mu.SetPosition(Vector3D(0, 0, 0))
-    mu.SetDirection(Vector3D(0, 0, -1));
-
-    std::vector<double> ranges;
-
-    for (int i = 0; i < 10; i++)
-    {
-        Secondaries sec = prop.Propagate(mu);
-
-        ranges.push_back(sec.GetPosition().back().magnitude());
-    }
-    
-// ... Do stuff with ranges, e.g. plot histogram
-
-}
-```
-
-Supposing this snippet is the content of `foo.cxx` within the
-following minimal code structure
-
-    my_program
-    ├── CMakeLists.txt
-    ├── resources
-    │   ├── configuration
-    │   └── tables
-    └── source
-        └── foo.cxx
-
-the `CMakeLists.txt` could look like
-
-```cmake
-cmake_minimum_required(VERSION 3.8)
-
-add_executable(foo source/foo.cxx)
-
-find_package(PROPOSAL REQUIRED)
-target_link_libraries(foo PRIVATE PROPOSAL::PROPOSAL)  # or PUBLIC
-```
-
-In case you did install PROPOSAL in a custom prefix, use `PROPOSAL_DIR` to tell
-cmake where to find PROPOSAL:
-
-```
-$ mkdir build && cd build
-$ PROPOSAL_DIR=/path/to/proposal/prefix cmake .. [CMAKE options]
-$ cmake --build .
-```
-
-
-### Python ###
-
-How to use PROPOSAL within Python is demonstrated with some example
-scripts you can find in
-[resources/examples/standalone](https://github.com/tudo-astroparticlephysics/PROPOSAL/blob/master/resources/examples/standalone).
-
-For a short demonstration the following snippet will create data you can use to
-show the distribution of muon ranges and the number of interactions in ice.
-The parameters of the given configuration file are described
-[here](https://github.com/tudo-astroparticlephysics/PROPOSAL/blob/master/resources/config_docu.md).
-
-```python
-import proposal as pp
-
-mu_def = pp.particle.MuMinusDef()
-prop = pp.Propagator(
-	  particle_def=mu_def,
-	  config_file="path/to/config.json"
-)
-
-mu = pp.particle.DynamicData(mu_def.particle_type)
-
-mu.energy = 9e6
-mu.direction = pp.Vector3D(0, 0, -1)
-
-mu_length = []
-mu_secondaries = []
-
-for i in range(1000):
-    sec = prop.propagate(mu)
-
-    mu_length.append(sec.position[-1].magnitude() / 100)
-    mu_secondaries.append(sec.number_of_particles)
-```
-
-## Documentation ##
-
-The C++ API can be built using
-
-	make doc
-
-A documentation of the configuration file can be found
-[here](https://github.com/tudo-astroparticlephysics/PROPOSAL/blob/master/resources/config_docu.md).
-
-## Issues ##
-
-When you encounter any errors or misunderstandings don't hesitate and write a mail to
-[Jan Soedingrekso](mailto:jan.soedingrekso@tu-dortmund.de),
-[Alexander Sandrock](mailto:alexander.sandrock@tu-dortmund.de).
-
-## License ##
-
-This software may be modified and distributed under the terms of
-a modified LGPL License. See the LICENSE for details of the LGPL License.
-
-Modifications of the LGPL [License](https://github.com/tudo-astroparticlephysics/PROPOSAL/blob/master/LICENSE.md):
-
-1. The user shall acknowledge the use of PROPOSAL by citing the following reference:
-
-	> J.H. Koehne et al.
-	> Comput.Phys.Commun. 184 (2013) 2070-2090
-	> DOI: 10.1016/j.cpc.2013.04.001
-
-2. The user should report any bugs/errors or improvements to the current maintainer of PROPOSAL.
-
 ## Developers and Maintainers ##
 
-*Jan Soedingrekso*, *Alexander Sandrock*, *Jean-Marco Alameddine*, *Maximilian Sackel*
+*Jan Soedingrekso*, *Alexander Sandrock*, *Jean-Marco Alameddine*
 
 ## Former Developers and Maintainers ##
 
-*Jan-Hendrik Koehne*, *Tomasz Fuchs*, *Mario Dunsch*
+*Jan-Hendrik Koehne*, *Tomasz Fuchs*, *Mario Dunsch*, *Maximilian Sackel*
 
 ## Acknowledgment ##
 
